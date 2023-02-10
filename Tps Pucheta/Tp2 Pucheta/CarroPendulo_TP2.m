@@ -335,7 +335,7 @@
 % subplot(3,1,3);plot(t,u,color);grid on;title('Acción de control');xlabel('Tiempo en Seg.');hold on;
 % figure(2);hold on;subplot(2,2,1);plot(alfa,omega,color);grid on;xlabel('Ángulo');ylabel('Velocidad angular');hold on;
 % subplot(2,2,2);plot(p,p_p,color);grid on;xlabel('Posicion carro');ylabel('Velocidad carro');hold on;
-% 
+
 %-----------------------------------------------------------------------------
 %TP2_Punto 8 / Controlador con integrador y observador.
 %
@@ -349,7 +349,7 @@
 
 clc;clear all;%close all;
 m=.1;Fricc=0.1; long=0.6;g=9.8;M=.5;
-h=0.0001;tiempo=(100/h);p_pp=0;tita_pp=0; t=0:h:tiempo*h;
+h=0.0001;tiempo=(20/h);p_pp=0;tita_pp=0; t=0:h:tiempo*h;
 omega=0:h:tiempo*h; alfa=0:h:tiempo*h; p=0:h:tiempo*h;
 p_p=0:h:tiempo*h; u=linspace(0,0,tiempo+1);
 %Condiciones iniciales
@@ -369,6 +369,7 @@ Mat_M=[Mat_B Mat_A*Mat_B Mat_A^2*Mat_B Mat_A^3*Mat_B ];%Matriz Controlabilidad
 Mat_O=[Mat_C; Mat_C*Mat_A; Mat_C*Mat_A^2; Mat_C*Mat_A^3];%Matriz Observabilidad
 auto_O=eig(Mat_O);
 rango_O=rank(Mat_O);
+xOP=[0;0;pi;0];
 
 % %Cálculo del controlador por asignación de polos
 auto_val=eig(Mat_A);
@@ -390,11 +391,11 @@ Mat_Ta=Mat_Ma*Mat_Wa;
 A_controlable=inv(Mat_Ta)*Mat_Aa*Mat_Ta; %Verificación de que T esté bien
 
 %Ubicación de los polos de lazo cerrado en mui:
-%mui(1)=-.7;mui(2)=-.7; mui(3)=-10 + 0.4i;mui(4)=conj(mui(3));mui(5)=-1;
- mui(1)=-0.2;mui(2)=-0.2; mui(3)=-10;mui(4)=conj(mui(3));mui(5)=-1;
-%mui(1)=-50;mui(2)=-500; mui(3)=-10 + 0.05i;mui(4)=conj(mui(3));mui(5)=-1;
+mui(1)=-1.7;mui(2)=-4; mui(3)=-1.0 + 0.4i;mui(4)=conj(mui(3));mui(5)=-10;
+%  mui(1)=-20;mui(2)=-.2; mui(3)=-.1;mui(4)=conj(mui(3));mui(5)=-10;
+% mui(1)=-50;mui(2)=-500; mui(3)=-10 + 0.05i;mui(4)=conj(mui(3));mui(5)=-1;
 alfa_ia=conv(conv(conv(conv([1 -mui(3)],[1 -mui(4)]),[1 -mui(2)]),[1 -mui(1)]),[1 -mui(5)]);
-Ka=(alfa_ia(2:6)-c_ai(2:6))*inv(Mat_Ta);
+Ka=flip(alfa_ia(2:6)-c_ai(2:6))*inv(Mat_Ta);
 eig(Mat_Aa-Mat_Ba*Ka)
 
 %Matrices Observador
@@ -409,7 +410,7 @@ mui_o=real(mui)*87;
 alfaO_i=conv(conv(conv([1 -mui_o(3)],[1 -mui_o(4)]),[1 -mui_o(2)]),[1 -mui_o(1)]);
 Mat_T_O=M_Dual*Mat_W;
 Ko=(fliplr(alfaO_i(2:end)-c_ai(2:end-1))*inv(Mat_T_O))';
-eig(Mat_A_O'-Ko*Mat_C) %Verifico que todos los polos estén en el semiplano izquierdo
+eig(Mat_A-Ko*Mat_C) %Verifico que todos los polos estén en el semiplano izquierdo
 x_hat=[0;0;0;0]; %Inicializo el Observador
 
 
@@ -428,11 +429,11 @@ while(i<(tiempo+1))
      m=1;
   end
  
- psi_p=ref-Mat_C* estado;
+ psi_p= ref-Mat_C* estado;
  psi(i+1)=psi(i)+psi_p*h;
  
- %u(i)=-K*estado+KI*psi(i+1);%Sin Observador
- u(i)=-K*x_hat+KI*psi(i+1); %Con Observador
+%  u(i)=-K*(estado-xOP)+KI*psi(i+1);%Sin Observador
+ u(i)=-K*(x_hat-xOP)+KI*psi(i+1); %Con Observador
 
  %Sistema no lineal
  p_pp=(1/(M+m))*(u(i)-m*long*tita_pp*cos(alfa(i))+m*long*omega(i)^2*sin(alfa(i))- Fricc*p_p(i));
@@ -446,10 +447,10 @@ while(i<(tiempo+1))
  %________OBSERVADOR__________
  y_sal_O(i)=Mat_C*x_hat;
  y_sal(i)=Mat_C*estado;
- x_hatp=Mat_A*x_hat+Mat_B*u(i)+Ko*(y_sal(i)-y_sal_O(i));
+ x_hatp=Mat_A*(x_hat-xOP)+Mat_B*u(i)+Ko*(y_sal(i)-y_sal_O(i));
  x_hat=x_hat+h*x_hatp;
  i=i+1;
-
+% xOP=[0;0;pi;0];
 end
 figure(1);hold on; t=1:i;t=t*h;
 subplot(3,2,1);plot(t,omega,color);grid on; title('Velocidad ángulo');hold on;
@@ -459,5 +460,3 @@ subplot(3,2,4);plot(t,p_p,color);grid on;title('Velocidad carro');hold on;
 subplot(3,1,3);plot(t,u,color);grid on;title('Acción de control');xlabel('Tiempo en Seg.');hold on;
 figure(2);hold on;subplot(2,2,1);plot(alfa,omega,color);grid on;xlabel('Ángulo');ylabel('Velocidad angular');hold on;
 subplot(2,2,2);plot(p,p_p,color);grid on;xlabel('Posicion carro');ylabel('Velocidad carro');hold on;
-
-
