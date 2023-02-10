@@ -292,7 +292,9 @@ x_hat=[0;0;0;0]; %Inicializo el Observador
 
 tve(1)=0;u(1)=0;
 for jj=1:Kmax-1
-  estado=[alfa(jj); tita_p(jj); tita(jj); h(jj)];
+%  estado=[alfa(jj); tita_p(jj); tita(jj); h(jj)]; Está incorrecto. 
+  estado=[alfa(jj); tita(jj); tita_p(jj);  h(jj)];
+
   
   %u(jj)=-K*estado+Gj*ref; color='b'; %Sin Observador
   u(jj)=-K*x_hat+Gj*ref; color='r'; %Con Observador
