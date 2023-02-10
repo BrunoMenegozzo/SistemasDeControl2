@@ -406,7 +406,7 @@ M_Dual=[Mat_B_O Mat_A_O*Mat_B_O Mat_A_O^2*Mat_B_O Mat_A_O^3*Mat_B_O];%MatrizCont
 
 % Controlador Observador Ko
 %mui_o= 1*mui; %<----Mismos polos a lazo cerrado que el sistema principal
-mui_o=real(mui)*87;
+mui_o=real(mui)*8.7;
 alfaO_i=conv(conv(conv([1 -mui_o(3)],[1 -mui_o(4)]),[1 -mui_o(2)]),[1 -mui_o(1)]);
 Mat_T_O=M_Dual*Mat_W;
 Ko=(fliplr(alfaO_i(2:end)-c_ai(2:end-1))*inv(Mat_T_O))';
@@ -432,8 +432,8 @@ while(i<(tiempo+1))
  psi_p= ref-Mat_C* estado;
  psi(i+1)=psi(i)+psi_p*h;
  
-%  u(i)=-K*(estado-xOP)+KI*psi(i+1);%Sin Observador
- u(i)=-K*(x_hat-xOP)+KI*psi(i+1); %Con Observador
+ u(i)=-K*(estado-xOP)+KI*psi(i+1);%Sin Observador
+% u(i)=-K*(x_hat-xOP)+KI*psi(i+1); %Con Observador
 
  %Sistema no lineal
  p_pp=(1/(M+m))*(u(i)-m*long*tita_pp*cos(alfa(i))+m*long*omega(i)^2*sin(alfa(i))- Fricc*p_p(i));
@@ -446,7 +446,7 @@ while(i<(tiempo+1))
  
  %________OBSERVADOR__________
  y_sal_O(i)=Mat_C*x_hat;
- y_sal(i)=Mat_C*estado;
+ y_sal(i)=Mat_C*(estado-xOP);
  x_hatp=Mat_A*(x_hat-xOP)+Mat_B*u(i)+Ko*(y_sal(i)-y_sal_O(i));
  x_hat=x_hat+h*x_hatp;
  i=i+1;
