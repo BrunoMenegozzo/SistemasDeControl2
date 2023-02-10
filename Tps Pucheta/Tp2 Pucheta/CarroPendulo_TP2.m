@@ -445,7 +445,7 @@ while(i<(tiempo+1))
  
  
  %________OBSERVADOR__________
- y_sal_O(i)=Mat_C*x_hat;
+ y_sal_O(i)=Mat_C*(x_hat-xOP);
  y_sal(i)=Mat_C*(estado-xOP);
  x_hatp=Mat_A*(x_hat-xOP)+Mat_B*u(i)+Ko*(y_sal(i)-y_sal_O(i));
  x_hat=x_hat+h*x_hatp;
