@@ -1,7 +1,7 @@
-%TP3_AVION: 
+%TP3_AVION:
 %-Falta colocar los polos de lazo cerrado en -15+/-15i y -.5+/-.5i como pide
 %en consigna. El problema es que ahora estamos en tiempo discreto asi qe
-%hay que averiguar cómo. 
+%hay que averiguar cómo.
 %-Hay que proponer una frecuencia de muestreo adecuada.
 %-------------------------------------------------------------------------
 % % %-----------------------------------------------------------------------------
@@ -31,7 +31,7 @@ Ac= [-a a 0 0 ;0 0 1 0; w^2 -w^2 0 0; c 0 0 0] ;
 Bc= [0; 0; w^2*b; 0];
 C= [0 0 0 1; 0 1 0 0];
 
-x= [alfa(1);phi(1);phi_p(1);h(1)]; 
+x= [alfa(1);phi(1);phi_p(1);h(1)];
 Mat_Mc=[Bc Ac*Bc Ac^2*Bc Ac^3*Bc ];%Matriz Controlabilidad t_continuo
 
 % Oc=[C; C*Ac; C*Ac^2; C*Ac^3];%Matriz Observabilidad t_continuo
@@ -45,24 +45,24 @@ sys_d=c2d(sys_c,Ts,'zoh');
 A=sys_d.a;
 B=sys_d.b;
 
-M=[B A*B A^2*B]; %Matriz de controlabilidad discreta
+M=[B A*B A^2*B A^3*B ]; %Matriz de controlabilidad discreta
 rango=rank(M);
 
 Aa=[A,zeros(4,2);-C*A, eye(2)];
 Ba=[B;-C*B];
 
-Ma=[Ba Aa*Ba Aa^2*Ba Aa^3*Ba Aa^4*Ba];%MatrizControlabilidad
+Ma=[Ba Aa*Ba Aa^2*Ba Aa^3*Ba Aa^4*Ba Aa^5*Ba];%MatrizControlabilidad
 rango_a=rank(Ma);
 
-Qc=diag([1e0 1e0 1e4 1e0 1e-3 1]); R=10; %Ts=0.01;
+Qc=diag([1e0 1e0 1e0 1e0 1e0 .01]); R=1e2; %Ts=0.01;
 % Qc=diag([1e0 1e0 1e1 1e0 1e-4 1e-4]); R=1; %Ts=0.1;
 %Contrucción del Hamiltoniano para el cálculo del controlador
 H=inv([eye(6) Ba*inv(R)*Ba'; zeros(6) Aa'])*[Aa zeros(6);-Qc eye(6)];
 [V,D]=eig(H);MX1X2=[];
 for ii=1:12
- if abs(D(ii,ii))<1
- MX1X2=[MX1X2 V(:,ii)];
- end
+    if abs(D(ii,ii))<1
+        MX1X2=[MX1X2 V(:,ii)];
+    end
 end
 MX1=MX1X2(1:6,:); MX2=MX1X2(7:12,:);
 Pc=real(MX2*inv(MX1));
@@ -74,18 +74,18 @@ aut_controlador=abs(eig(Aa-Ba*Ka));
 % %Funcional de costos MATRIZ DISCRETA ORIGINAL. VER SI HACE FALTA INTEGRAR!
 % Q=diag([.9 .9 .9 .9]);R=diag([1e2 1e1]);
 % H=inv([eye(3) B*inv(R)*B'; zeros(3) A'])*[A zeros(3);-Q eye(3)];
-% 
+%
 % %H=[A+B*inv(R)*B'*inv(A')*Q -B*inv(R)*B'*inv(A') ; -inv(A')*Q inv(A')];
 % %O también
 % %H=inv([eye(4) Mat_B*inv(R)*Mat_B'; zeros(4) Mat_A'])*[Mat_A zeros(4);-Q eye(4)]
 % [V,D]=eig(H);MX1X2=[];
-% 
+%
 % for ii=1:8
 %  if abs(D(ii,ii))<1
 %  MX1X2=[MX1X2 V(:,ii)];
 %  end
 % end
-% 
+%
 % MX1=MX1X2(1:4,:); MX2=MX1X2(5:8,:);
 % P=real(MX2*inv(MX1));
 % K=inv(R+B'*P*B)*B'*P*A;
@@ -103,11 +103,11 @@ aut_controlador=abs(eig(Aa-Ba*Ka));
 % K=fliplr(alfa_i(2:5)-c_ai(2:5))*inv(Mat_T);
 %---------------------------------------------------------------------
 %Matriz G: Referencia distitnta de 0.
- G=inv(C(1,:)*inv(eye(4)-A+B*K)*B);
- abs(eig(A-B*K))
+% G=inv(C(1,:)*inv(eye(4)-A+B*K)*B);
+abs(eig(A-B*K))
 
- %------------------------------------------------------------------
- % % %__________________________OBSERVADOR__________________________
+%------------------------------------------------------------------
+% % %__________________________OBSERVADOR__________________________
 M_Obs=[C;(C*A);(C*A^2);(C*A^3)];
 rank(M_Obs)
 C_O=B';
@@ -115,19 +115,19 @@ A_O=A';
 B_O=C';
 M_D=M_Obs';
 
-%Funcional de costos Observador 
+%Funcional de costos Observador
 % Qo=diag([.1 .1 .9 .9]);Ro=diag([1e10 1e10]); %Valores sin alinealidad
 Qo=diag([.01 .01 .01 .1]);Ro=diag([1e3 1e4]); %Valores con alinealidad
 
 H=[A_O+B_O*inv(Ro)*B_O'*inv(A_O')*Qo -B_O*inv(Ro)*B_O'*inv(A_O'); -inv(A_O')*Qo inv(A_O')];
 [V,D]=eig(H);MX1X2=[];
 for ii=1:8
- if abs(D(ii,ii))<1
- MX1X2=[MX1X2 V(:,ii)];
- end
+    if abs(D(ii,ii))<1
+        MX1X2=[MX1X2 V(:,ii)];
+    end
 end
 MX1=MX1X2(1:4,:); MX2=MX1X2(5:8,:);
-P=real(MX2*inv(MX1)); 
+P=real(MX2*inv(MX1));
 Ko=(inv(Ro+B_O'*P*B_O)*B_O'*P*A_O)';
 abs(eig(A-Ko*C))
 %----------------------------------------------------------------
@@ -145,45 +145,45 @@ V_L=x'*P*x;
 ve1(1)=0;ve1_i=0;ve2_i=0;ve2(1)=0;
 ref2=0;
 for ki=1:KMAX
- t=[t ki*Ts];
-
- Y_=C*x;
- e1=ref-Y_(1);
- e2=ref2-Y_(2);
- 
- ve1_i=ve1_i+e1;
- ve1(ki)=ve1_i;
- 
- ve2_i=ve2_i+e2;
- ve2(ki)=ve2_i;
-
-  %u=-Ka*[xang;ve1(ki);ve2(ki)];color='b';%Estado ampliado con observador
-  u=-Ka*[x;ve1(ki);ve2(ki)];color='r';%Estado ampliado sin observador
-%-------------------------------------------- 
- %Alinealidad
- if -.25<u && u<.25
-     u=0;
- else
-     u=u;
- end
- 
- ys=C*x; %Acá DEBE medirse y.
- J=[J J(ki)+x'*Qo*x+u'*R*u];
- 
- x=A*x+B*u;
- 
- %   %Lyapunov
-%  V_Li=[X;ve1(ii)]'*P*[X;ve1(ii)];
-%  V_L=[V_L V_Li];
-%  Jl=Jl+[X;ve1(ii)]'*Q*[X;ve1(ii)]+u'*R*u';
-%  Mat_J=[Mat_J Jl];
- V_L=[V_L x'*P*x];
- alfa(ki+1)=x(1);
- phi(ki+1)=x(2);
- phi_p(ki+1)=x(3);
- h(ki+1)=x(4);
- u_k(ki+1)=u;
- xang=A*xang+B*u+Ko*(ys-C*xang);%Acá se usa y.
+    t=[t ki*Ts];
+    
+    Y_=C*x;
+    e1=ref-Y_(1);
+    e2=ref2-Y_(2);
+    
+    ve1_i=ve1_i+e1;
+    ve1(ki)=ve1_i;
+    
+    ve2_i=ve2_i+e2;
+    ve2(ki)=ve2_i;
+    
+    %u=-Ka*[xang;ve1(ki);ve2(ki)];color='b';%Estado ampliado con observador
+    u=-Ka*[x;ve1(ki);0];color='r';%Estado ampliado sin observador
+    %--------------------------------------------
+    %Alinealidad
+    if -.25<u && u<.25
+        u=0;
+    else
+        u=u;
+    end
+    
+    ys=C*x; %Acá DEBE medirse y.
+    J=[J J(ki)+x'*Qo*x+u'*R*u];
+    
+    x=A*x+B*u;
+    
+    %   %Lyapunov
+    %  V_Li=[X;ve1(ii)]'*P*[X;ve1(ii)];
+    %  V_L=[V_L V_Li];
+    %  Jl=Jl+[X;ve1(ii)]'*Q*[X;ve1(ii)]+u'*R*u';
+    %  Mat_J=[Mat_J Jl];
+    V_L=[V_L x'*P*x];
+    alfa(ki+1)=x(1);
+    phi(ki+1)=x(2);
+    phi_p(ki+1)=x(3);
+    h(ki+1)=x(4);
+    u_k(ki+1)=u;
+    xang=A*xang+B*u+Ko*(ys-C*xang);%Acá se usa y.
 end
 %------------------------------------------------------------------------
 %Grafico
