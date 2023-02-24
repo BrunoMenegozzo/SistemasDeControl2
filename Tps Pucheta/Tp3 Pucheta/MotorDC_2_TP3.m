@@ -127,7 +127,7 @@
 % % %-----------------------------------------------------------------------------
 % Motor DC DLQR con integrador del error. Funciona
 % %---------------------------------------------------------------------------
-clear all;close all;
+clear all;%close all;
 TamanioFuente=12;
 ii=0;At=1e-5;ref=-1.57;tF=.15;
 Ts=At;
@@ -137,6 +137,12 @@ u=12;Tl=0;
 ia(1)=0;tita(1)=0;w(1)=0;
 X=[ia(1);tita(1);w(1)];
 
+%Alinealidad
+ Alinealidad= 5;color='r';
+Alinealidad= 16;color='m';
+%Alinealidad= 15;color='g';
+%Alinealidad= 30;color='m';
+%Alinealidad= 30;color='k';
 
 %Caracteristicas del motor
 Laa=366e-6; J=5e-9;Ra=55.6;B=0;Ki=6.49e-3;Km=6.53e-3;
@@ -172,7 +178,8 @@ rango_a=rank(Ma);
 
 % %Funcional de costos
 %Q=diag([10000 20000 8000]);R=1e9;
-Q=diag([10 200 10 10]);R=1e2;
+Q=diag([10 20 80 10]);R=1e1; % Para TL 1.15e-8
+%Q=diag([1e2 1e2 1e2 1e2]);R=1e-1;
 H=[Aa+Ba*inv(R)*Ba'*inv(Aa')*Q -Ba*inv(R)*Ba'*inv(Aa') ; -inv(Aa')*Q inv(Aa')];
 
 [V,D]=eig(H);MX1X2=[];
@@ -189,10 +196,37 @@ aut_controlador=abs(eig(Aa-Ba*Ka));
 %Matriz referencia
 Gj=-inv(C*inv(A-B*K)*B);
 
+% % %__________________________OBSERVADOR__________________________
+M_Obs=[C;(C*A);(C*A^2);(C*A^3)];
+rank(M_Obs)
+C_O=B';
+A_O=A';
+B_O=C';
+M_D=M_Obs';
+
+%Funcional de costos Observador
+
+Qo=diag([.1 .1 .1]);Ro=diag(1e2);
+
+H=[A_O+B_O*inv(Ro)*B_O'*inv(A_O')*Qo -B_O*inv(Ro)*B_O'*inv(A_O'); -inv(A_O')*Qo inv(A_O')];
+[V,D]=eig(H);MX1X2=[];
+for ii=1:6
+    if abs(D(ii,ii))<1
+        MX1X2=[MX1X2 V(:,ii)];
+    end
+end
+MX1=MX1X2(1:3,:); MX2=MX1X2(4:6,:);
+Po=real(MX2*inv(MX1));
+Ko=(inv(Ro+B_O'*Po*B_O)*B_O'*Po*A_O)';
+abs(eig(A-Ko*C))
+
+
 %Simulacion Lineal
 V_L=[X;0]'*P*[X;0];
 Jmin=[X;0]'*P*[X;0];
 Mat_J=0;
+
+xang=[0;0;0];
 V_L=[X;0]'*P*[X;0];
 Jl=0;Jmin_L=V_L;
 ve1(1)=0;vei=0;
@@ -208,8 +242,8 @@ for t=0:At:tF
  vei=vei+e1;
  ve1(ii)=vei;
 
-  u=-Ka*[X;ve1(ii)];%Estado ampliado
- 
+ % u=-Ka*[X;ve1(ii)];%color='r';%Estado ampliado
+ u=-Ka*[xang;ve1(ii)];%color='b';
   %Lyapunov
  V_Li=[X;ve1(ii)]'*P*[X;ve1(ii)];
  V_L=[V_L V_Li];
@@ -226,13 +260,14 @@ for t=0:At:tF
 
         ref=1.57;
   end 
-  %Alinealidad
- if -5<u && u<5
+%   %Alinealidad
+
+ if -Alinealidad<u && u<Alinealidad
      u=0;
  else
      u=u;
  end  
- color='r';
+ 
     %Grafico sin observador
      x1(ii)=X(1); %Ia
      x2(ii)=X(2); %tita
@@ -240,6 +275,8 @@ for t=0:At:tF
  
  torque(ii)=Tl;%Torque Tl
  acc(ii)=u;
+ 
+ xang=A*xang+B*u+Ko*(Y_-C*xang);%Acá se usa y.
 end
 
 %Grafico
@@ -258,9 +295,11 @@ xlabel('Tiempo [Seg.]');
 subplot(4,2,8);hold on;
 plot(t,acc(1:numel(t)),color);title('Accion de control');
 xlabel('Tiempo [Seg.]');
-
+% % 
 figure(2);
-semilogy(t,Mat_J(1:numel(t)),color);grid on;title('Modelo no lineal','FontSize',TamanioFuente);
-xlabel('Tiempo en Seg.','FontSize',TamanioFuente);ylabel('Funcionales J y V','FontSize',TamanioFuente);hold on;
-%semilogy(t,Jmin*ones(size(Mat_J)),color);
-semilogy(t,V_L(1:numel(t)),'g');
+% subplot(2,1,1);
+plot(x2,x3,color);title('Diagrama de Fases: Alinealidad = +/-30 V');xlabel('tita');ylabel('omega');grid on;hold on;
+% subplot(2,1,2);semilogy(t,Mat_J(1:numel(t)),color);grid on;title('Modelo lineal','FontSize',TamanioFuente);
+% xlabel('Tiempo en Seg.','FontSize',TamanioFuente);ylabel('Funcionales J y V','FontSize',TamanioFuente);hold on;
+% %semilogy(t,Jmin*ones(size(Mat_J)),color);
+% semilogy(t,V_L(1:numel(t)),'g');
